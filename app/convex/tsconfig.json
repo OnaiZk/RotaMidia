@@ -1,0 +1,17 @@
+{
+  /* This TypeScript configuration file is used for Convex functions. */
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx"
+  },
+  "include": ["./**/*"]
+}

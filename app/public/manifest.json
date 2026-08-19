@@ -1,0 +1,28 @@
+{
+  "name": "Eletromidia | Campo Digital",
+  "short_name": "Campo Digital",
+  "description": "Sistema de Gestão de Ordens de Serviço e Vistorias em Campo - Eletromidia",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#FF5000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/eletromidia/logo-mobile.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/eletromidia/logo-desktop.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

@@ -1,0 +1,17 @@
+@font-face {
+  font-family: 'Rethink Sans';
+  font-style: normal;
+  font-weight: normal;
+  src: url('./RethinkSans-Medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Rethink Sans';
+  font-style: normal;
+  font-weight: bold;
+  src: url('./RethinkSans-Bold.ttf') format('truetype');
+}
+
+body {
+  font-family: 'Rethink Sans', sans-serif;
+}
