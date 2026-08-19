@@ -104,7 +104,7 @@ export const getDadosCompletos = query({
       let totalAtividades = 0;
       let atividadesConcluidas = 0;
       let ultimaDataConclusao: string | null = null;
-      const atividadesFeitasPorTecnicoNaOrdem = new Map<string, number>();
+      const atividadesFeitasPorTecnicoNaOrdem: Record<string, number> = {};
 
       for (const p of ordemPontos) {
         const pAtivs = atividadesPorPonto.get(p._id.toString()) || [];
@@ -114,10 +114,8 @@ export const getDadosCompletos = query({
             atividadesConcluidas++;
             if (a.concluidaPorId) {
               const tId = a.concluidaPorId.toString();
-              atividadesFeitasPorTecnicoNaOrdem.set(
-                tId,
-                (atividadesFeitasPorTecnicoNaOrdem.get(tId) || 0) + 1
-              );
+              atividadesFeitasPorTecnicoNaOrdem[tId] =
+                (atividadesFeitasPorTecnicoNaOrdem[tId] || 0) + 1;
             }
             if (a.concluidaEm) {
               if (!ultimaDataConclusao || a.concluidaEm > ultimaDataConclusao) {
@@ -235,7 +233,7 @@ export const getDadosCompletos = query({
 
       const ordensEmAndamento = Array.from(ordensEmAndamentoSet).map((oId) => {
         const ord = ordensMapProcessadas.get(oId)!;
-        const feitasPeloTecnico = ord.atividadesFeitasPorTecnicoNaOrdem.get(tId) || 0;
+        const feitasPeloTecnico = ord.atividadesFeitasPorTecnicoNaOrdem[tId] || 0;
         return {
           ordemId: ord._id.toString(),
           titulo: ord.titulo,

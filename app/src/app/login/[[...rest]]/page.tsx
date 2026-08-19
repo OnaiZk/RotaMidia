@@ -1,19 +1,28 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   const { isLoaded, signIn, setActive } = useSignIn();
+  const { userId } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Redireciona automaticamente se já estiver logado
+  useEffect(() => {
+    if (userId) {
+      router.push("/admin");
+    }
+  }, [userId, router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +161,15 @@ export default function LoginPage() {
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
                 </button>
+              </div>
+
+              <div className="mt-8 text-center">
+                <p className="text-sm text-gray-500">
+                  Ainda não tem uma conta?{" "}
+                  <Link href="/cadastro" className="text-[#FF5000] font-semibold hover:underline">
+                    Criar conta
+                  </Link>
+                </p>
               </div>
             </div>
             
