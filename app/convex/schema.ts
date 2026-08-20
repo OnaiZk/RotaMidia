@@ -36,6 +36,10 @@ export default defineSchema({
   pontos: defineTable({
     ordemServicoId: v.id("ordensServico"),
     numeroPonto: v.string(),
+    numeroEletro: v.optional(v.string()),
+    numeroParada: v.optional(v.string()),
+    rota: v.optional(v.string()),
+    modelo: v.optional(v.string()),
     endereco: v.string(),
     referencia: v.optional(v.string()),
     tipo: v.union(

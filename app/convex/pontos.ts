@@ -78,6 +78,10 @@ export const create = mutation({
   args: {
     ordemServicoId: v.id("ordensServico"),
     numeroPonto: v.string(),
+    numeroEletro: v.optional(v.string()),
+    numeroParada: v.optional(v.string()),
+    rota: v.optional(v.string()),
+    modelo: v.optional(v.string()),
     endereco: v.string(),
     referencia: v.optional(v.string()),
     tipo: v.union(v.literal("totem"), v.literal("abrigo"), v.literal("outro")),
@@ -105,6 +109,10 @@ export const create = mutation({
     const pontoId = await ctx.db.insert("pontos", {
       ordemServicoId: args.ordemServicoId,
       numeroPonto: args.numeroPonto.trim(),
+      numeroEletro: args.numeroEletro ? args.numeroEletro.trim() : undefined,
+      numeroParada: args.numeroParada ? args.numeroParada.trim() : undefined,
+      rota: args.rota ? args.rota.trim() : undefined,
+      modelo: args.modelo ? args.modelo.trim() : undefined,
       endereco: args.endereco.trim(),
       referencia: args.referencia ? args.referencia.trim() : undefined,
       tipo: args.tipo,
@@ -127,6 +135,10 @@ export const createBatch = mutation({
     pontos: v.array(
       v.object({
         numeroPonto: v.string(),
+        numeroEletro: v.optional(v.string()),
+        numeroParada: v.optional(v.string()),
+        rota: v.optional(v.string()),
+        modelo: v.optional(v.string()),
         endereco: v.string(),
         referencia: v.optional(v.string()),
         tipo: v.union(v.literal("totem"), v.literal("abrigo"), v.literal("outro")),
@@ -157,6 +169,10 @@ export const createBatch = mutation({
       const pontoId = await ctx.db.insert("pontos", {
         ordemServicoId: args.ordemServicoId,
         numeroPonto: item.numeroPonto.trim(),
+        numeroEletro: item.numeroEletro ? item.numeroEletro.trim() : undefined,
+        numeroParada: item.numeroParada ? item.numeroParada.trim() : undefined,
+        rota: item.rota ? item.rota.trim() : undefined,
+        modelo: item.modelo ? item.modelo.trim() : undefined,
         endereco: item.endereco.trim(),
         referencia: item.referencia ? item.referencia.trim() : undefined,
         tipo: item.tipo,
@@ -192,6 +208,10 @@ export const update = mutation({
   args: {
     id: v.id("pontos"),
     numeroPonto: v.optional(v.string()),
+    numeroEletro: v.optional(v.string()),
+    numeroParada: v.optional(v.string()),
+    rota: v.optional(v.string()),
+    modelo: v.optional(v.string()),
     endereco: v.optional(v.string()),
     referencia: v.optional(v.string()),
     tipo: v.optional(v.union(v.literal("totem"), v.literal("abrigo"), v.literal("outro"))),
@@ -207,6 +227,10 @@ export const update = mutation({
 
     const updates: {
       numeroPonto?: string;
+      numeroEletro?: string;
+      numeroParada?: string;
+      rota?: string;
+      modelo?: string;
       endereco?: string;
       referencia?: string;
       tipo?: "totem" | "abrigo" | "outro";
@@ -216,6 +240,10 @@ export const update = mutation({
     } = {};
 
     if (args.numeroPonto !== undefined) updates.numeroPonto = args.numeroPonto.trim();
+    if (args.numeroEletro !== undefined) updates.numeroEletro = args.numeroEletro.trim();
+    if (args.numeroParada !== undefined) updates.numeroParada = args.numeroParada.trim();
+    if (args.rota !== undefined) updates.rota = args.rota.trim();
+    if (args.modelo !== undefined) updates.modelo = args.modelo.trim();
     if (args.endereco !== undefined) updates.endereco = args.endereco.trim();
     if (args.referencia !== undefined) updates.referencia = args.referencia.trim();
     if (args.tipo !== undefined) updates.tipo = args.tipo;

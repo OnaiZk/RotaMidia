@@ -47,19 +47,33 @@ export function PontoCard({ ponto, token }: PontoCardProps) {
         <div className="p-4 sm:p-5">
           <div className="flex justify-between items-start mb-3">
             <div className="flex flex-col gap-1">
-              <span className="text-lg font-bold text-gray-900 group-hover:text-[#FF5000] transition-colors">
-                Ponto {numeroExibicao}
-              </span>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold w-fit uppercase tracking-wider ${
+              <div className="flex items-center gap-2 flex-wrap">
+                {ponto.ordem && (
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md">
+                    #{ponto.ordem}
+                  </span>
+                )}
+                <span className="text-lg font-bold text-gray-900 group-hover:text-[#FF5000] transition-colors">
+                  {numeroExibicao}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold w-fit uppercase tracking-wider ${
                   ponto.tipo === 'abrigo' 
-                    ? 'bg-slate-100 text-slate-700' 
+                    ? 'bg-slate-100 text-slate-700 border border-slate-200' 
                     : ponto.tipo === 'totem'
-                    ? 'bg-orange-100 text-[#FF5000]'
+                    ? 'bg-orange-100 text-[#FF5000] border border-orange-200'
                     : 'bg-gray-100 text-gray-700'
                 }`}>
-                  {ponto.tipo === 'abrigo' ? 'Abrigo' : ponto.tipo === 'totem' ? 'Totem' : 'Outro'}
+                  {ponto.tipo === 'abrigo' ? 'Abrigo' : ponto.tipo === 'totem' ? 'Totem' : 'Mobiliário'}
                 </span>
+
+                {ponto.modelo && (
+                  <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">
+                    {ponto.modelo}
+                  </span>
+                )}
 
                 {isOfflinePending && (
                   <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5">

@@ -3,8 +3,9 @@
 import { useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import Link from 'next/link';
-import { Plus, Search, ClipboardList } from 'lucide-react';
+import { Plus, Search, ClipboardList, FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
+import ImportarPlanilha from '@/components/importar-planilha';
 
 export default function OrdensPage() {
   const [filter, setFilter] = useState('todas');
@@ -23,13 +24,23 @@ export default function OrdensPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Ordens de Serviço</h1>
           <p className="text-sm text-slate-500 mt-1">Gerencie e acompanhe o andamento dos pontos de parada</p>
         </div>
-        <Link 
-          href="/admin/ordens/nova" 
-          className="bg-[#FF5000] hover:bg-[#E04700] text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus className="w-5 h-5" />
-          Nova Ordem
-        </Link>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Link
+            href="/admin/base-preventiva"
+            className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-bold flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl transition-all border border-emerald-200 shadow-2xs cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Abrir Planilha Base (21k pts)</span>
+          </Link>
+          <ImportarPlanilha modoLoteDireto={true} botaoTexto="Importar Planilha Externa" />
+          <Link 
+            href="/admin/ordens/nova" 
+            className="bg-[#FF5000] hover:bg-[#E04700] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Ordem</span>
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 flex flex-col sm:flex-row gap-4">

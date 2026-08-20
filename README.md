@@ -129,10 +129,11 @@ NEXT_PUBLIC_CONVEX_URL=https://<seu-deployment>.convex.cloud
 NEXT_PUBLIC_CONVEX_SITE_URL=https://<seu-deployment>.convex.site
 ```
 
-> **Configuração do Resend (E-mail)**:
-> No Convex, defina a chave do Resend com o comando:
+> **Configuração de Envio de E-mails (Gmail SMTP / Nodemailer)**:
+> No Convex, defina o usuário e a senha de aplicativo de 16 dígitos com os comandos:
 > ```bash
-> npx convex env set RESEND_API_KEY re_suachave
+> npx convex env set SMTP_USER seuemail@gmail.com
+> npx convex env set SMTP_PASS "gpir ruki qxjj yzoc"
 > ```
 
 ### 5. Iniciar o Ambiente de Desenvolvimento

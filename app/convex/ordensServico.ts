@@ -319,3 +319,216 @@ export const remove = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Cria uma ordem de serviço completa com seus pontos, atividades e atribuições em uma única transação rápida.
+ */
+export const createOrdemComPontos = mutation({
+  args: {
+    titulo: v.string(),
+    descricao: v.optional(v.string()),
+    dataLimite: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("rascunho"),
+        v.literal("ativa"),
+        v.literal("concluida"),
+        v.literal("cancelada")
+      )
+    ),
+    tecnicosIds: v.optional(v.array(v.id("tecnicos"))),
+    atividadesPadrao: v.optional(v.array(v.string())),
+    pontos: v.array(
+      v.object({
+        numeroPonto: v.string(),
+        numeroEletro: v.optional(v.string()),
+        numeroParada: v.optional(v.string()),
+        rota: v.optional(v.string()),
+        modelo: v.optional(v.string()),
+        endereco: v.string(),
+        referencia: v.optional(v.string()),
+        tipo: v.union(v.literal("totem"), v.literal("abrigo"), v.literal("outro")),
+        latitude: v.optional(v.number()),
+        longitude: v.optional(v.number()),
+        ordem: v.optional(v.number()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const dataCriacao = new Date().toISOString();
+    const ordemId = await ctx.db.insert("ordensServico", {
+      titulo: args.titulo.trim(),
+      descricao: args.descricao ? args.descricao.trim() : undefined,
+      dataCriacao,
+      dataLimite: args.dataLimite,
+      status: args.status || "rascunho",
+    });
+
+    const atividadesList =
+      args.atividadesPadrao && args.atividadesPadrao.length > 0
+        ? args.atividadesPadrao
+        : [
+            "Limpeza geral",
+            "Verificar iluminação",
+            "Verificar estrutura",
+            "Verificar vidros",
+          ];
+
+    let seq = 1;
+    for (const p of args.pontos) {
+      if (!p.endereco.trim()) continue;
+      const pontoId = await ctx.db.insert("pontos", {
+        ordemServicoId: ordemId,
+        numeroPonto: p.numeroPonto.trim() || `P-${seq}`,
+        numeroEletro: p.numeroEletro ? p.numeroEletro.trim() : undefined,
+        numeroParada: p.numeroParada ? p.numeroParada.trim() : undefined,
+        rota: p.rota ? p.rota.trim() : undefined,
+        modelo: p.modelo ? p.modelo.trim() : undefined,
+        endereco: p.endereco.trim(),
+        referencia: p.referencia ? p.referencia.trim() : undefined,
+        tipo: p.tipo,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        ordem: p.ordem ?? seq,
+      });
+      seq++;
+
+      for (const desc of atividadesList) {
+        if (desc && desc.trim()) {
+          await ctx.db.insert("atividades", {
+            pontoId,
+            descricao: desc.trim(),
+            concluida: false,
+          });
+        }
+      }
+    }
+
+    if (args.tecnicosIds && args.tecnicosIds.length > 0) {
+      for (const tecId of args.tecnicosIds) {
+        const token =
+          Math.random().toString(36).substring(2) +
+          Date.now().toString(36) +
+          Math.random().toString(36).substring(2, 6);
+        await ctx.db.insert("atribuicoes", {
+          ordemServicoId: ordemId,
+          tecnicoId: tecId,
+          token,
+        });
+      }
+    }
+
+    return ordemId;
+  },
+});
+
+/**
+ * Cria múltiplas ordens de serviço preventivas em lote para diversas rotas selecionadas.
+ */
+export const createBatchOrdens = mutation({
+  args: {
+    ordens: v.array(
+      v.object({
+        titulo: v.string(),
+        descricao: v.optional(v.string()),
+        dataLimite: v.optional(v.string()),
+        status: v.optional(
+          v.union(
+            v.literal("rascunho"),
+            v.literal("ativa"),
+            v.literal("concluida"),
+            v.literal("cancelada")
+          )
+        ),
+        tecnicosIds: v.optional(v.array(v.id("tecnicos"))),
+        atividadesPadrao: v.optional(v.array(v.string())),
+        pontos: v.array(
+          v.object({
+            numeroPonto: v.string(),
+            numeroEletro: v.optional(v.string()),
+            numeroParada: v.optional(v.string()),
+            rota: v.optional(v.string()),
+            modelo: v.optional(v.string()),
+            endereco: v.string(),
+            referencia: v.optional(v.string()),
+            tipo: v.union(v.literal("totem"), v.literal("abrigo"), v.literal("outro")),
+            latitude: v.optional(v.number()),
+            longitude: v.optional(v.number()),
+            ordem: v.optional(v.number()),
+          })
+        ),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const dataCriacao = new Date().toISOString();
+    const createdIds: string[] = [];
+
+    for (const item of args.ordens) {
+      const ordemId = await ctx.db.insert("ordensServico", {
+        titulo: item.titulo.trim(),
+        descricao: item.descricao ? item.descricao.trim() : undefined,
+        dataCriacao,
+        dataLimite: item.dataLimite,
+        status: item.status || "rascunho",
+      });
+      createdIds.push(ordemId);
+
+      const atividadesList =
+        item.atividadesPadrao && item.atividadesPadrao.length > 0
+          ? item.atividadesPadrao
+          : [
+              "Limpeza geral",
+              "Verificar iluminação",
+              "Verificar estrutura",
+              "Verificar vidros",
+            ];
+
+      let seq = 1;
+      for (const p of item.pontos) {
+        if (!p.endereco.trim()) continue;
+        const pontoId = await ctx.db.insert("pontos", {
+          ordemServicoId: ordemId,
+          numeroPonto: p.numeroPonto.trim() || `P-${seq}`,
+          numeroEletro: p.numeroEletro ? p.numeroEletro.trim() : undefined,
+          numeroParada: p.numeroParada ? p.numeroParada.trim() : undefined,
+          rota: p.rota ? p.rota.trim() : undefined,
+          modelo: p.modelo ? p.modelo.trim() : undefined,
+          endereco: p.endereco.trim(),
+          referencia: p.referencia ? p.referencia.trim() : undefined,
+          tipo: p.tipo,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          ordem: p.ordem ?? seq,
+        });
+        seq++;
+
+        for (const desc of atividadesList) {
+          if (desc && desc.trim()) {
+            await ctx.db.insert("atividades", {
+              pontoId,
+              descricao: desc.trim(),
+              concluida: false,
+            });
+          }
+        }
+      }
+
+      if (item.tecnicosIds && item.tecnicosIds.length > 0) {
+        for (const tecId of item.tecnicosIds) {
+          const token =
+            Math.random().toString(36).substring(2) +
+            Date.now().toString(36) +
+            Math.random().toString(36).substring(2, 6);
+          await ctx.db.insert("atribuicoes", {
+            ordemServicoId: ordemId,
+            tecnicoId: tecId,
+            token,
+          });
+        }
+      }
+    }
+
+    return { success: true, count: createdIds.length, ordensIds: createdIds };
+  },
+});

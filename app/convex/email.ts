@@ -1,11 +1,13 @@
+"use node";
+
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { Doc } from "./_generated/dataModel";
 
 /**
- * Envia um e-mail com design limpo e moderno para o técnico via Resend,
+ * Envia um e-mail com design limpo e moderno para o técnico via Brevo (Sendinblue) ou Gmail SMTP,
  * contendo o link direto (token) para execução da ordem de serviço no celular.
  */
 export const enviarEmailTecnico = action({
@@ -17,10 +19,14 @@ export const enviarEmailTecnico = action({
     ctx,
     args
   ): Promise<{ success: boolean; emailId?: string; destinatario: string }> => {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
+    // Credenciais Brevo (Sendinblue)
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    const senderEmail =
+      process.env.SENDER_EMAIL || "mouracassiano410@gmail.com";
+
+    if (!brevoApiKey) {
       throw new Error(
-        "A variável de ambiente RESEND_API_KEY não está configurada no Convex. Configure-a no painel do Convex."
+        "Chave da API Brevo (BREVO_API_KEY) não configurada nas variáveis de ambiente do Convex. Configure com: npx convex env set BREVO_API_KEY sua_chave"
       );
     }
 
@@ -41,6 +47,13 @@ export const enviarEmailTecnico = action({
     }
 
     const { atribuicao, tecnico, ordem, totalPontos } = dados;
+
+    const emailDestino = tecnico.email?.trim();
+    if (!emailDestino || !emailDestino.includes("@")) {
+      throw new Error(
+        `E-mail do técnico inválido: '${tecnico.email}'. Verifique o cadastro do técnico.`
+      );
+    }
 
     // 2. Montar URL de acesso mobile do técnico
     const cleanBaseUrl = args.baseUrl.replace(/\/+$/, "");
@@ -192,20 +205,67 @@ export const enviarEmailTecnico = action({
 </html>
     `;
 
-    // 5. Enviar e-mail através da API do Resend
-    const resend = new Resend(apiKey);
-    const remetente =
-      process.env.RESEND_FROM_EMAIL || "Eletromidia Campo <onboarding@resend.dev>";
+    const remetenteNome = process.env.SENDER_NAME || process.env.SMTP_FROM_NAME || "Eletromidia Campo";
+    let messageId: string | undefined;
 
-    const response = await resend.emails.send({
-      from: remetente,
-      to: [tecnico.email],
-      subject: `[Eletromidia] Nova Ordem de Serviço: ${ordem.titulo}`,
-      html,
-    });
+    // 5. Envio via Brevo API Oficial
+    const cleanBrevoKey = brevoApiKey.trim();
+    const cleanSender = (senderEmail || "mouracassiano410@gmail.com").trim();
 
-    if (response.error) {
-      throw new Error(`Erro ao enviar e-mail via Resend: ${response.error.message}`);
+    console.log(`[Brevo] Iniciando disparo de e-mail:`);
+    console.log(`- De: ${remetenteNome} <${cleanSender}>`);
+    console.log(`- Para: ${tecnico.nome} <${emailDestino}>`);
+    console.log(`- OS: ${ordem.titulo}`);
+
+    if (cleanBrevoKey.startsWith("xsmtpsib-")) {
+      // Se for chave SMTP
+      const transporter = nodemailer.createTransport({
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: cleanSender,
+          pass: cleanBrevoKey,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: `"${remetenteNome}" <${cleanSender}>`,
+        to: emailDestino,
+        subject: `[Eletromidia] Nova Ordem de Serviço: ${ordem.titulo}`,
+        html,
+      });
+
+      messageId = info.messageId;
+      console.log(`[Brevo SMTP] Enviado com sucesso. MessageID: ${messageId}`);
+    } else {
+      // Envio direto e ultra-rápido via REST API oficial do Brevo
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "api-key": cleanBrevoKey,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: remetenteNome, email: cleanSender },
+          to: [{ email: emailDestino, name: tecnico.nome }],
+          subject: `[Eletromidia] Nova Ordem de Serviço: ${ordem.titulo}`,
+          htmlContent: html,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData: any = await res.json().catch(() => ({}));
+        console.error(`[Brevo API Erro] Status ${res.status}:`, errData);
+        throw new Error(
+          `Erro ao enviar e-mail via Brevo API (${res.status}): ${errData?.message || res.statusText || 'Falha no envio'}`
+        );
+      }
+
+      const data: any = await res.json();
+      messageId = data?.messageId;
+      console.log(`[Brevo API] Enviado com sucesso. MessageID: ${messageId}`);
     }
 
     // 6. Atualizar a data de envio na atribuição
@@ -215,8 +275,8 @@ export const enviarEmailTecnico = action({
 
     return {
       success: true,
-      emailId: response.data?.id,
-      destinatario: tecnico.email,
+      emailId: messageId,
+      destinatario: emailDestino,
     };
   },
 });

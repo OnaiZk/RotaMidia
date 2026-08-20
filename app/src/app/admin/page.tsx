@@ -2,7 +2,7 @@
 
 import { useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
-import { ClipboardList, CheckCircle2, Users, Activity, ChevronRight, Plus } from 'lucide-react';
+import { ClipboardList, CheckCircle2, Users, Activity, ChevronRight, Plus, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -28,13 +28,22 @@ export default function DashboardPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-sm text-slate-500 mt-1">Visão geral das rotas e manutenções em campo</p>
         </div>
-        <Link 
-          href="/admin/ordens/nova" 
-          className="inline-flex items-center justify-center gap-2 bg-[#FF5000] hover:bg-[#E04700] text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Ordem
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/base-preventiva"
+            className="inline-flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Planilha Base (21k pts)</span>
+          </Link>
+          <Link 
+            href="/admin/ordens/nova" 
+            className="inline-flex items-center justify-center gap-2 bg-[#FF5000] hover:bg-[#E04700] text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-colors shadow-sm self-start sm:self-auto cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Ordem</span>
+          </Link>
+        </div>
       </div>
       
       {/* Metrics */}

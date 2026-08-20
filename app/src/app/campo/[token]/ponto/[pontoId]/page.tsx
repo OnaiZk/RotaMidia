@@ -146,6 +146,22 @@ export default function PontoDetailPage() {
     }
   };
 
+  const toggleAtiv = useMutation(api.campo.toggleAtividade);
+  const updateObs = useMutation(api.campo.updateAtividadeObservacao);
+
+  const handleToggleAtividade = async (atividadeId: string, atualConcluida: boolean) => {
+    try {
+      await toggleAtiv({
+        token,
+        pontoId,
+        atividadeId,
+        concluida: !atualConcluida,
+      });
+    } catch (e) {
+      console.error('Erro ao alternar atividade:', e);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC] pb-20">
       {/* Fixed Header */}
@@ -163,6 +179,7 @@ export default function PontoDetailPage() {
             </h1>
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               {ponto.tipo === 'abrigo' ? 'Abrigo de Ônibus' : ponto.tipo === 'totem' ? 'Totem Digital' : 'Mobiliário Urbano'}
+              {ponto.modelo ? ` • ${ponto.modelo}` : ''}
             </span>
           </div>
         </div>
@@ -182,6 +199,12 @@ export default function PontoDetailPage() {
                 }`}>
                   {isConcluido ? '✓ Concluído' : 'Pendente'}
                 </span>
+
+                {ponto.rota && (
+                  <span className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold font-mono">
+                    {ponto.rota}
+                  </span>
+                )}
 
                 {isOfflinePending && (
                   <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
@@ -212,7 +235,53 @@ export default function PontoDetailPage() {
           </a>
         </div>
 
-        {/* Card de Conclusão / Ação */}
+        {/* Checklist de Atividades Preventivas */}
+        {atividades && atividades.length > 0 && (
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">Checklist de Manutenção</h3>
+                <p className="text-xs text-slate-400">Marque as atividades executadas no local</p>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full">
+                {atividadesConcluidas} / {totalAtividades}
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {atividades.map((ativ: any) => (
+                <div 
+                  key={ativ._id}
+                  onClick={() => handleToggleAtividade(ativ._id, !!ativ.concluida)}
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                    ativ.concluida 
+                      ? 'bg-emerald-50/40 border-emerald-200 text-slate-800' 
+                      : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!ativ.concluida}
+                    onChange={() => {}} // tratado no onClick do container
+                    className="w-5 h-5 mt-0.5 text-emerald-600 rounded focus:ring-emerald-500 accent-emerald-600 shrink-0 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium leading-snug ${ativ.concluida ? 'line-through text-slate-500' : 'text-slate-900'}`}>
+                      {ativ.descricao}
+                    </p>
+                    {ativ.observacao && (
+                      <p className="text-xs text-amber-700 italic mt-1 bg-amber-50 p-1.5 rounded-md border border-amber-200">
+                        Obs: {ativ.observacao}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Card de Conclusão / Ação Global */}
         <div className="pt-2">
           {isConcluido ? (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-4 shadow-xs">
@@ -244,7 +313,7 @@ export default function PontoDetailPage() {
               className="w-full py-4 px-4 bg-[#FF5000] text-white font-bold rounded-2xl shadow-md hover:bg-[#E04700] active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-base cursor-pointer disabled:opacity-50"
             >
               {concluindo ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-              <span>Concluir Ponto</span>
+              <span>Concluir Ponto Completo</span>
             </button>
           )}
         </div>

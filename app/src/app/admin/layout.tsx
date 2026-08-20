@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ClipboardList, Users, BarChart3, Menu, X, Loader2, UserCheck } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, BarChart3, Menu, X, Loader2, UserCheck, FileSpreadsheet } from 'lucide-react';
 import { useUser, UserButton } from '@clerk/nextjs';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Base Preventiva', href: '/admin/base-preventiva', icon: FileSpreadsheet },
     { name: 'Ordens de Serviço', href: '/admin/ordens', icon: ClipboardList },
     { name: 'Técnicos', href: '/admin/tecnicos', icon: Users },
     { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart3 },

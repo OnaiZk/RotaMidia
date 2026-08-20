@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '@convex/_generated/api';
-import { ArrowLeft, Mail, Copy, MapPin, CheckCircle2, Clock, Check, Loader2, Trash2, Download, FileSpreadsheet, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Mail, Copy, MapPin, CheckCircle2, Clock, Check, Loader2, Trash2, Download, FileSpreadsheet, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Id } from '@convex/_generated/dataModel';
@@ -67,17 +67,28 @@ export default function OrdemDetailPage() {
     setTimeout(() => setCopiadoToken(null), 3000);
   };
 
+  const handleEnviarWhatsApp = (atrib: any) => {
+    const url = `${window.location.origin}/campo/${atrib.token}`;
+    const nomeTecnico = atrib.tecnico?.nome || 'Técnico';
+    const texto = encodeURIComponent(
+      `Olá ${nomeTecnico}! 🛠️\nUma nova Ordem de Serviço foi atribuída a você:\n\n*${ordem.titulo}*\n\nAcesse o link abaixo para visualizar a rota e executar o serviço:\n${url}`
+    );
+    const telefone = atrib.tecnico?.telefone ? atrib.tecnico.telefone.replace(/\D/g, '') : '';
+    const waUrl = telefone ? `https://wa.me/55${telefone}?text=${texto}` : `https://wa.me/?text=${texto}`;
+    window.open(waUrl, '_blank');
+  };
+
   const handleEnviarEmail = async (atribuicaoId: Id<"atribuicoes">) => {
     try {
       setEnviandoEmailId(atribuicaoId);
-      await enviarEmailAction({
+      const res = await enviarEmailAction({
         atribuicaoId,
         baseUrl: window.location.origin,
       });
-      alert('E-mail enviado com sucesso para o técnico!');
+      alert(`E-mail enviado com sucesso para ${res.destinatario}!`);
     } catch (err: any) {
       console.error('Erro ao enviar e-mail:', err);
-      alert(`Erro ao enviar e-mail: ${err.message || 'Verifique sua chave Resend'}`);
+      alert(`Erro ao enviar e-mail: ${err.message || 'Verifique as credenciais do Brevo'}`);
     } finally {
       setEnviandoEmailId(null);
     }
@@ -269,28 +280,38 @@ export default function OrdemDetailPage() {
                 )}
               </div>
 
-              <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100">
+              <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-100">
                 <button 
                   onClick={() => handleEnviarEmail(atrib._id)}
                   disabled={enviandoEmailId === atrib._id}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-[#FF5000] py-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                  title="Disparar e-mail automático para o técnico"
+                  className="flex items-center justify-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-[#FF5000] py-2 px-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
                 >
                   {enviandoEmailId === atrib._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
-                  {atrib.enviadoEm ? 'Reenviar E-mail' : 'Enviar E-mail'}
+                  <span className="truncate">{atrib.enviadoEm ? 'Reenviar' : 'E-mail'}</span>
+                </button>
+                <button 
+                  onClick={() => handleEnviarWhatsApp(atrib)}
+                  title="Enviar link da OS direto no WhatsApp"
+                  className="flex items-center justify-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2 px-2 rounded-xl text-xs font-semibold transition-colors border border-emerald-200"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="truncate">WhatsApp</span>
                 </button>
                 <button 
                   onClick={() => handleCopiarLink(atrib.token)}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-semibold transition-colors border border-slate-200"
+                  title="Copiar link de acesso direto"
+                  className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 px-2 rounded-xl text-xs font-semibold transition-colors border border-slate-200"
                 >
                   {copiadoToken === atrib.token ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="text-emerald-600">Copiado!</span>
+                      <span className="text-emerald-600 truncate">Copiado!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar Link</span>
+                      <span className="truncate">Copiar</span>
                     </>
                   )}
                 </button>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, ArrowLeft, Loader2, FileSpreadsheet, MapPin, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Loader2, MapPin, Search, ChevronDown, ChevronUp, Sparkles, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { Id } from '@convex/_generated/dataModel';
 import ImportarPlanilha, { PontoImportado } from '@/components/importar-planilha';
@@ -12,17 +12,14 @@ import ImportarPlanilha, { PontoImportado } from '@/components/importar-planilha
 export default function NovaOrdemPage() {
   const router = useRouter();
   const tecnicos = useQuery(api.tecnicos.list, {}) || [];
-  
-  const createOrdem = useMutation(api.ordensServico.create);
-  const createPonto = useMutation(api.pontos.create);
-  const createAtividadesBatch = useMutation(api.atividades.createBatch);
-  const createAtribuicao = useMutation(api.atribuicoes.create);
+  const createOrdemComPontos = useMutation(api.ordensServico.createOrdemComPontos);
   
   const [salvando, setSalvando] = useState(false);
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
     dataLimite: '',
+    status: 'rascunho' as 'rascunho' | 'ativa',
   });
 
   const [pontos, setPontos] = useState<PontoImportado[]>([
@@ -30,25 +27,35 @@ export default function NovaOrdemPage() {
   ]);
 
   const [atividadesPadrao, setAtividadesPadrao] = useState<string[]>([
-    'Limpeza geral', 'Verificar iluminação', 'Verificar estrutura', 'Verificar sinalização'
+    'Limpeza geral e higienização',
+    'Vistoria de iluminação e elétrica',
+    'Vistoria de vidros e painéis publicitários',
+    'Verificação de estrutura e cobertura',
+    'Verificação de adesivos / sinalização / itinerário',
   ]);
   const [tecnicosSelecionados, setTecnicosSelecionados] = useState<string[]>([]);
   const [buscaTecnico, setBuscaTecnico] = useState('');
   const [atividadesExpanded, setAtividadesExpanded] = useState(true);
   const [pontosExpanded, setPontosExpanded] = useState(true);
+  const [limiteExibicaoPontos, setLimiteExibicaoPontos] = useState(50);
 
   const sugestoesAtividades = [
-    'Limpeza geral', 'Verificar iluminação', 'Verificar estrutura', 
-    'Verificar sinalização', 'Verificar vidros', 'Verificar banco/assento', 
-    'Verificar cobertura', 'Verificar painel de informações'
+    'Limpeza geral e higienização',
+    'Vistoria de iluminação e elétrica',
+    'Vistoria de vidros e painéis publicitários',
+    'Verificação de estrutura e cobertura',
+    'Verificação de adesivos / sinalização / itinerário',
+    'Vistoria do banco / assento',
+    'Registro fotográfico de comprovação',
   ];
 
-  const handleImportarPlanilha = (pontosImportados: PontoImportado[], atividadesImportadas: string[]) => {
+  const handleImportarPlanilha = (pontosImportados: PontoImportado[], atividadesImportadas: string[], tituloSugerido?: string) => {
     if (pontosImportados.length > 0) {
       setPontos(pontosImportados);
       
-      // Se não tinha título, sugerir um
-      if (!formData.titulo.trim()) {
+      if (tituloSugerido) {
+        setFormData(prev => ({ ...prev, titulo: tituloSugerido }));
+      } else if (!formData.titulo.trim()) {
         const primeiroBairro = pontosImportados[0]?.referencia;
         setFormData(prev => ({
           ...prev,
@@ -60,7 +67,6 @@ export default function NovaOrdemPage() {
     }
 
     if (atividadesImportadas.length > 0) {
-      // Mesclar atividades novas sem duplicar
       setAtividadesPadrao(prev => {
         const set = new Set([...prev, ...atividadesImportadas]);
         return Array.from(set);
@@ -92,7 +98,7 @@ export default function NovaOrdemPage() {
     setPontos(pontos.filter((_, i) => i !== index));
   };
 
-  const handlePontoChange = (index: number, field: keyof PontoImportado, value: string) => {
+  const handlePontoChange = (index: number, field: keyof PontoImportado, value: any) => {
     const newPontos = [...pontos];
     newPontos[index] = { ...newPontos[index], [field]: value };
     setPontos(newPontos);
@@ -100,55 +106,46 @@ export default function NovaOrdemPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.titulo.trim()) return;
+    if (!formData.titulo.trim()) {
+      alert('Informe o título da Ordem de Serviço.');
+      return;
+    }
+
+    const pontosValidos = pontos.filter(p => p.endereco.trim().length > 0);
+    if (pontosValidos.length === 0) {
+      alert('Adicione pelo menos um ponto de parada com endereço válido.');
+      return;
+    }
 
     try {
       setSalvando(true);
 
-      // 1. Criar Ordem de Serviço
-      const ordemId = await createOrdem({
+      const ordemId = await createOrdemComPontos({
         titulo: formData.titulo.trim(),
         descricao: formData.descricao.trim() || undefined,
         dataLimite: formData.dataLimite || undefined,
-      });
-
-      // 2. Criar Pontos e suas Atividades
-      for (let i = 0; i < pontos.length; i++) {
-        const p = pontos[i];
-        if (!p.endereco.trim()) continue;
-
-        const pontoId = await createPonto({
-          ordemServicoId: ordemId,
-          numeroPonto: p.numeroPonto.trim() || `P-${i + 1}`,
+        status: formData.status,
+        tecnicosIds: tecnicosSelecionados.map(id => id as Id<"tecnicos">),
+        atividadesPadrao: atividadesPadrao.length > 0 ? atividadesPadrao : undefined,
+        pontos: pontosValidos.map((p, idx) => ({
+          numeroPonto: p.numeroPonto.trim() || `P-${idx + 1}`,
+          numeroEletro: p.numeroEletro,
+          numeroParada: p.numeroParada,
+          rota: p.rota,
+          modelo: p.modelo,
           endereco: p.endereco.trim(),
           referencia: p.referencia.trim() || undefined,
           tipo: p.tipo,
           latitude: p.latitude,
           longitude: p.longitude,
-          ordem: i + 1,
-        });
-
-        // Criar atividades para o ponto
-        if (atividadesPadrao.length > 0) {
-          await createAtividadesBatch({
-            pontoId,
-            atividades: atividadesPadrao.map(desc => ({ descricao: desc })),
-          });
-        }
-      }
-
-      // 3. Atribuir Técnicos
-      for (const tecId of tecnicosSelecionados) {
-        await createAtribuicao({
-          ordemServicoId: ordemId,
-          tecnicoId: tecId as Id<"tecnicos">,
-        });
-      }
+          ordem: p.ordem ?? (idx + 1),
+        })),
+      });
 
       router.push(`/admin/ordens/${ordemId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar ordem:', error);
-      alert('Ocorreu um erro ao salvar a ordem de serviço.');
+      alert(`Ocorreu um erro ao salvar a ordem de serviço: ${error.message || 'Tente novamente'}`);
       setSalvando(false);
     }
   };
@@ -163,7 +160,7 @@ export default function NovaOrdemPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Nova Ordem de Serviço</h1>
-            <p className="text-xs text-slate-500">Crie manualmente ou importe uma planilha Excel</p>
+            <p className="text-xs text-slate-500">Crie manualmente ou importe uma rota da planilha de preventivas</p>
           </div>
         </div>
 
@@ -182,8 +179,8 @@ export default function NovaOrdemPage() {
               <input 
                 required
                 type="text" 
-                placeholder="Ex: Manutenção Preventiva - Rota Jaraguá / São Domingos"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm outline-none"
+                placeholder="Ex: Preventiva - RT-FL-001 - TATUAPÉ (1º SEMANA - 132 pontos)"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm outline-none font-medium"
                 value={formData.titulo}
                 onChange={e => setFormData({...formData, titulo: e.target.value})}
               />
@@ -199,14 +196,28 @@ export default function NovaOrdemPage() {
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Data Limite para Conclusão</label>
-              <input 
-                type="date" 
-                className="w-full md:w-1/3 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm outline-none"
-                value={formData.dataLimite}
-                onChange={e => setFormData({...formData, dataLimite: e.target.value})}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Data Limite para Conclusão</label>
+                <input 
+                  type="date" 
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm outline-none"
+                  value={formData.dataLimite}
+                  onChange={e => setFormData({...formData, dataLimite: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status Inicial</label>
+                <select
+                  value={formData.status}
+                  onChange={e => setFormData({...formData, status: e.target.value as any})}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm outline-none bg-white font-medium text-slate-700"
+                >
+                  <option value="rascunho">Rascunho (Não visível para o técnico ainda)</option>
+                  <option value="ativa">Ativa / Em Andamento (Visível imediatamente)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -215,7 +226,14 @@ export default function NovaOrdemPage() {
         <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Pontos de Parada ({pontos.length})</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-900">Pontos de Parada ({pontos.length})</h2>
+                {pontos.length > 50 && (
+                  <span className="bg-orange-100 text-[#FF5000] text-xs font-bold px-2.5 py-0.5 rounded-full">
+                    Rota Grande
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400">Locais onde as atividades serão executadas em campo</p>
             </div>
             <div className="flex items-center gap-2">
@@ -223,14 +241,14 @@ export default function NovaOrdemPage() {
               <button 
                 type="button" 
                 onClick={addPonto}
-                className="text-sm text-[#FF5000] font-semibold flex items-center gap-1.5 hover:text-[#E04700] px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors"
+                className="text-sm text-[#FF5000] font-semibold flex items-center gap-1.5 hover:text-[#E04700] px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> Adicionar Ponto
               </button>
               <button
                 type="button"
                 onClick={() => setPontosExpanded(!pontosExpanded)}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-center ml-1"
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-center ml-1 cursor-pointer"
                 title={pontosExpanded ? "Recolher Pontos" : "Expandir Pontos"}
               >
                 {pontosExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -240,20 +258,36 @@ export default function NovaOrdemPage() {
 
           {pontosExpanded && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              {pontos.map((ponto, idx) => (
+              {pontos.slice(0, limiteExibicaoPontos).map((ponto, idx) => (
                 <div key={idx} className="p-4 sm:p-5 border border-slate-200/80 rounded-xl bg-slate-50/50 relative">
                   {pontos.length > 1 && (
                     <button 
                       type="button"
                       onClick={() => removePonto(idx)}
-                      className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors p-1"
+                      className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
                       title="Remover este ponto"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-bold px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md font-mono">
+                      #{idx + 1}
+                    </span>
+                    {ponto.rota && (
+                      <span className="text-xs font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md">
+                        Rota: {ponto.rota}
+                      </span>
+                    )}
+                    {ponto.modelo && (
+                      <span className="text-xs font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">
+                        {ponto.modelo}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1">Endereço / Logradouro *</label>
                       <input 
@@ -266,21 +300,21 @@ export default function NovaOrdemPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Nº da Parada / Código</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Nº Identificador / Eletro / Parada</label>
                       <input 
                         required
                         type="text" 
-                        placeholder="Ex: 3900000089"
+                        placeholder="Ex: A02561 (820012561)"
                         className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-[#FF5000] outline-none font-mono"
                         value={ponto.numeroPonto}
                         onChange={e => handlePontoChange(idx, 'numeroPonto', e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Bairro / Referência</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Bairro / Região / Referência</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: JARAGUÁ • NORTE"
+                        placeholder="Ex: TATUAPÉ • LESTE • 1º SEMANA"
                         className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-[#FF5000] outline-none"
                         value={ponto.referencia}
                         onChange={e => handlePontoChange(idx, 'referencia', e.target.value)}
@@ -293,7 +327,7 @@ export default function NovaOrdemPage() {
                         value={ponto.tipo}
                         onChange={e => handlePontoChange(idx, 'tipo', e.target.value as any)}
                       >
-                        <option value="abrigo">Abrigo de Ônibus (Minimalista / SK / Mupi)</option>
+                        <option value="abrigo">Abrigo de Ônibus (Brutalista / Minimalista / Caos)</option>
                         <option value="totem">Totem Digital / Totem Marrom</option>
                         <option value="outro">Outro Mobiliário</option>
                       </select>
@@ -308,6 +342,21 @@ export default function NovaOrdemPage() {
                   )}
                 </div>
               ))}
+
+              {pontos.length > limiteExibicaoPontos && (
+                <div className="p-4 bg-slate-50 text-center rounded-xl border border-slate-200 space-y-2">
+                  <p className="text-xs text-slate-600 font-medium">
+                    Exibindo os primeiros {limiteExibicaoPontos} de {pontos.length} pontos. Todos os {pontos.length} pontos serão incluídos ao criar a ordem.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setLimiteExibicaoPontos(prev => prev + 50)}
+                    className="text-xs font-bold text-[#FF5000] hover:underline cursor-pointer"
+                  >
+                    Mostrar mais 50 pontos
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -322,7 +371,7 @@ export default function NovaOrdemPage() {
             <button
               type="button"
               onClick={() => setAtividadesExpanded(!atividadesExpanded)}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-center"
+              className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-center cursor-pointer"
               title={atividadesExpanded ? "Recolher Atividades" : "Expandir Atividades"}
             >
               {atividadesExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -339,7 +388,7 @@ export default function NovaOrdemPage() {
                       key={atividade}
                       type="button"
                       onClick={() => toggleAtividade(atividade)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-orange-50 border-orange-300 text-[#FF5000] shadow-xs'
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -367,7 +416,7 @@ export default function NovaOrdemPage() {
                           <button
                             type="button"
                             onClick={() => toggleAtividade(atividade)}
-                            className="text-emerald-500 hover:text-emerald-800"
+                            className="text-emerald-500 hover:text-emerald-800 cursor-pointer"
                           >
                             ×
                           </button>
@@ -385,7 +434,7 @@ export default function NovaOrdemPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-lg font-bold text-slate-900">Atribuir Técnicos de Campo</h2>
-              <p className="text-xs text-slate-500">Selecione os técnicos que realizarão as vistorias.</p>
+              <p className="text-xs text-slate-500">Selecione os técnicos que realizarão as vistorias (ou deixe em branco para atribuir depois).</p>
             </div>
             
             {/* Campo de Busca */}
@@ -452,7 +501,7 @@ export default function NovaOrdemPage() {
             className="px-6 py-2.5 bg-[#FF5000] hover:bg-[#E04700] text-white rounded-xl font-semibold disabled:opacity-50 flex items-center gap-2 transition-colors shadow-sm text-sm cursor-pointer"
           >
             {salvando && <Loader2 className="w-4 h-4 animate-spin" />}
-            {salvando ? 'Criando Ordem...' : 'Criar Ordem de Serviço'}
+            {salvando ? 'Criando Ordem...' : `Criar Ordem de Serviço (${pontos.length} pontos)`}
           </button>
         </div>
       </form>
