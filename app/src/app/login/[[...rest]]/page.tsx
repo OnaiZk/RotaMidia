@@ -40,11 +40,17 @@ export default function LoginPage() {
         await setActive({ session: result.createdSessionId });
         router.push("/admin");
       } else {
-        // Tratar outros fluxos como 2FA se necessário
+        // Tratar outros fluxos como 2FA ou email não verificado
         console.log(result);
+        if (result.status === "needs_first_factor") {
+          setError("Esta conta requer verificação adicional. Por favor, verifique seu email.");
+        } else {
+          setError(`Não foi possível completar o login. Status: ${result.status}`);
+        }
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.longMessage || err.errors?.[0]?.message || "Ocorreu um erro ao fazer login.");
+      console.error("Erro no login:", err);
+      setError(err.errors?.[0]?.longMessage || err.errors?.[0]?.message || "Credenciais inválidas ou erro ao fazer login.");
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +135,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={isLoading || !isLoaded}
-                  className="w-full bg-[#FF5000] hover:bg-[#E04700] text-white rounded-2xl py-3.5 font-bold transition-colors shadow-lg shadow-orange-500/25 disabled:opacity-70 flex items-center justify-center"
+                  className="w-full bg-[#FF5000] hover:bg-[#E04700] text-white rounded-2xl py-3.5 font-bold transition-colors shadow-lg shadow-orange-500/25 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
