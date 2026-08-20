@@ -39,7 +39,7 @@ export const list = query({
           .collect();
 
         // Obter todas as atividades de todos os pontos da ordem
-        let totalAtividades = 0;
+        let totalAtividades = pontos.length;
         let atividadesConcluidas = 0;
 
         for (const ponto of pontos) {
@@ -48,8 +48,9 @@ export const list = query({
             .withIndex("by_pontoId", (q) => q.eq("pontoId", ponto._id))
             .collect();
 
-          totalAtividades += atividades.length;
-          atividadesConcluidas += atividades.filter((a) => a.concluida).length;
+          if (atividades.length > 0 && atividades.every((a) => a.concluida)) {
+            atividadesConcluidas++;
+          }
         }
 
         // Obter técnicos atribuídos
@@ -117,7 +118,7 @@ export const getById = query({
 
     pontos.sort((a, b) => a.ordem - b.ordem);
 
-    let totalAtividades = 0;
+    let totalAtividades = pontos.length;
     let atividadesConcluidas = 0;
 
     const pontosComAtividades = await Promise.all(
@@ -128,15 +129,18 @@ export const getById = query({
           .collect();
 
         const concluidas = atividades.filter((a) => a.concluida).length;
-        totalAtividades += atividades.length;
-        atividadesConcluidas += concluidas;
+        const concluido = atividades.length > 0 && concluidas === atividades.length;
+        
+        if (concluido) {
+          atividadesConcluidas++;
+        }
 
         return {
           ...ponto,
           atividades,
           totalAtividades: atividades.length,
           atividadesConcluidas: concluidas,
-          concluido: atividades.length > 0 && concluidas === atividades.length,
+          concluido,
         };
       })
     );

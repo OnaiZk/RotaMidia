@@ -27,11 +27,7 @@ export default function NovaOrdemPage() {
   ]);
 
   const [atividadesPadrao, setAtividadesPadrao] = useState<string[]>([
-    'Limpeza geral e higienização',
-    'Vistoria de iluminação e elétrica',
-    'Vistoria de vidros e painéis publicitários',
-    'Verificação de estrutura e cobertura',
-    'Verificação de adesivos / sinalização / itinerário',
+    'Manutenção Preventiva do Endereço/Ponto',
   ]);
   const [tecnicosSelecionados, setTecnicosSelecionados] = useState<string[]>([]);
   const [buscaTecnico, setBuscaTecnico] = useState('');

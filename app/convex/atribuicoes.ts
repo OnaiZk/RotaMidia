@@ -78,7 +78,7 @@ export const getByToken = query({
 
     pontos.sort((a, b) => a.ordem - b.ordem);
 
-    let totalAtividades = 0;
+    let totalAtividades = pontos.length;
     let atividadesConcluidas = 0;
 
     const pontosComAtividades = await Promise.all(
@@ -89,15 +89,18 @@ export const getByToken = query({
           .collect();
 
         const concluidas = atividades.filter((a) => a.concluida).length;
-        totalAtividades += atividades.length;
-        atividadesConcluidas += concluidas;
+        const concluido = atividades.length > 0 && concluidas === atividades.length;
+        
+        if (concluido) {
+          atividadesConcluidas++;
+        }
 
         return {
           ...ponto,
           atividades,
           totalAtividades: atividades.length,
           atividadesConcluidas: concluidas,
-          concluido: atividades.length > 0 && concluidas === atividades.length,
+          concluido,
         };
       })
     );

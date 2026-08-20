@@ -72,24 +72,31 @@ export const getDadosCompletos = query({
     }
 
     const atividadesPorTecnico = new Map<string, AtividadeDetalhada[]>();
-    for (const ativ of atividades) {
-      if (ativ.concluida && ativ.concluidaPorId) {
-        const tId = ativ.concluidaPorId.toString();
-        if (!atividadesPorTecnico.has(tId)) atividadesPorTecnico.set(tId, []);
+    for (const ponto of pontos) {
+      const pAtivs = atividadesPorPonto.get(ponto._id.toString()) || [];
+      const isConcluido = pAtivs.length > 0 && pAtivs.every((a) => a.concluida);
+      
+      if (isConcluido) {
+        // Encontra a atividade que tem a informação de quem concluiu
+        const ativConcluida = pAtivs.find(a => a.concluidaPorId);
+        
+        if (ativConcluida && ativConcluida.concluidaPorId) {
+          const tId = ativConcluida.concluidaPorId.toString();
+          if (!atividadesPorTecnico.has(tId)) atividadesPorTecnico.set(tId, []);
 
-        const ponto = pontosMap.get(ativ.pontoId.toString());
-        const ordem = ponto ? ordensMap.get(ponto.ordemServicoId.toString()) : null;
+          const ordem = ordensMap.get(ponto.ordemServicoId.toString());
 
-        atividadesPorTecnico.get(tId)!.push({
-          _id: ativ._id.toString(),
-          descricao: ativ.descricao,
-          concluidaEm: ativ.concluidaEm,
-          observacao: ativ.observacao,
-          pontoNumero: ponto?.numeroPonto || "N/A",
-          pontoEndereco: ponto?.endereco || "Endereço não informado",
-          ordemId: ordem?._id.toString() || "",
-          ordemTitulo: ordem?.titulo || "Ordem desconhecida",
-        });
+          atividadesPorTecnico.get(tId)!.push({
+            _id: ponto._id.toString(), // Usamos o ID do ponto
+            descricao: 'Manutenção do Ponto', // Descrição simplificada por ponto
+            concluidaEm: ativConcluida.concluidaEm,
+            observacao: ativConcluida.observacao, // Ou juntar todas
+            pontoNumero: ponto.numeroPonto || "N/A",
+            pontoEndereco: ponto.endereco || "Endereço não informado",
+            ordemId: ordem?._id.toString() || "",
+            ordemTitulo: ordem?.titulo || "Ordem desconhecida",
+          });
+        }
       }
     }
 
@@ -101,26 +108,32 @@ export const getDadosCompletos = query({
       const oId = ordem._id.toString();
       const ordemPontos = pontosPorOrdem.get(oId) || [];
       
-      let totalAtividades = 0;
+      let totalAtividades = ordemPontos.length;
       let atividadesConcluidas = 0;
       let ultimaDataConclusao: string | null = null;
       const atividadesFeitasPorTecnicoNaOrdem: Record<string, number> = {};
 
       for (const p of ordemPontos) {
         const pAtivs = atividadesPorPonto.get(p._id.toString()) || [];
-        totalAtividades += pAtivs.length;
-        for (const a of pAtivs) {
-          if (a.concluida) {
-            atividadesConcluidas++;
-            if (a.concluidaPorId) {
-              const tId = a.concluidaPorId.toString();
-              atividadesFeitasPorTecnicoNaOrdem[tId] =
-                (atividadesFeitasPorTecnicoNaOrdem[tId] || 0) + 1;
-            }
-            if (a.concluidaEm) {
-              if (!ultimaDataConclusao || a.concluidaEm > ultimaDataConclusao) {
-                ultimaDataConclusao = a.concluidaEm;
-              }
+        const isConcluido = pAtivs.length > 0 && pAtivs.every((a) => a.concluida);
+        
+        if (isConcluido) {
+          atividadesConcluidas++;
+          
+          let tIdEncontrado = null;
+          let maiorData = null;
+          
+          for (const a of pAtivs) {
+            if (a.concluidaPorId && !tIdEncontrado) tIdEncontrado = a.concluidaPorId.toString();
+            if (a.concluidaEm && (!maiorData || a.concluidaEm > maiorData)) maiorData = a.concluidaEm;
+          }
+          
+          if (tIdEncontrado) {
+             atividadesFeitasPorTecnicoNaOrdem[tIdEncontrado] = (atividadesFeitasPorTecnicoNaOrdem[tIdEncontrado] || 0) + 1;
+          }
+          if (maiorData) {
+            if (!ultimaDataConclusao || maiorData > ultimaDataConclusao) {
+              ultimaDataConclusao = maiorData;
             }
           }
         }
@@ -308,8 +321,18 @@ export const getDadosCompletos = query({
 
     // 5. Métricas Gerais (KPIs)
     const totalPontosGeral = pontos.length;
-    const totalAtividadesGeral = atividades.length;
-    const totalAtividadesConcluidasGeral = atividades.filter((a) => a.concluida).length;
+    
+    // Contagem por endereço/ponto
+    let pontosConcluidosGeral = 0;
+    for (const p of pontos) {
+      const pAtivs = atividades.filter(a => a.pontoId === p._id);
+      if (pAtivs.length > 0 && pAtivs.every(a => a.concluida)) {
+        pontosConcluidosGeral++;
+      }
+    }
+    
+    const totalAtividadesGeral = totalPontosGeral;
+    const totalAtividadesConcluidasGeral = pontosConcluidosGeral;
     const totalAtividadesPendentesGeral = totalAtividadesGeral - totalAtividadesConcluidasGeral;
     const taxaGeralConclusao = totalAtividadesGeral > 0
       ? Math.round((totalAtividadesConcluidasGeral / totalAtividadesGeral) * 100)

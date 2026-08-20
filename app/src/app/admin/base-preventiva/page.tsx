@@ -50,11 +50,7 @@ export interface PontoBase {
 }
 
 const CHECKLIST_PREVENTIVA_PADRAO = [
-  'Limpeza geral e higienização',
-  'Vistoria de iluminação e elétrica',
-  'Vistoria de vidros e painéis publicitários',
-  'Verificação de estrutura e cobertura',
-  'Verificação de adesivos / sinalização / itinerário',
+  'Manutenção Preventiva do Endereço/Ponto'
 ];
 
 export default function BasePreventivaPage() {

@@ -23,8 +23,7 @@ export default function PontoDetailPage() {
   );
   const markAllAtividades = useMutation(api.campo.markAllAtividades);
   const unmarkAllAtividades = useMutation(api.campo.unmarkAllAtividades);
-  const toggleAtiv = useMutation(api.campo.toggleAtividade);
-  const updateObs = useMutation(api.campo.updateAtividadeObservacao);
+
 
   useEffect(() => {
     // Carrega status offline se houver ação pendente
@@ -152,18 +151,7 @@ export default function PontoDetailPage() {
     }
   };
 
-  const handleToggleAtividade = async (atividadeId: string, atualConcluida: boolean) => {
-    try {
-      await toggleAtiv({
-        token,
-        pontoId,
-        atividadeId,
-        concluida: !atualConcluida,
-      });
-    } catch (e) {
-      console.error('Erro ao alternar atividade:', e);
-    }
-  };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC] pb-20">
@@ -238,51 +226,7 @@ export default function PontoDetailPage() {
           </a>
         </div>
 
-        {/* Checklist de Atividades Preventivas */}
-        {atividades && atividades.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">Checklist de Manutenção</h3>
-                <p className="text-xs text-slate-400">Marque as atividades executadas no local</p>
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full">
-                {atividadesConcluidas} / {totalAtividades}
-              </span>
-            </div>
 
-            <div className="space-y-2.5">
-              {atividades.map((ativ: any) => (
-                <div 
-                  key={ativ._id}
-                  onClick={() => handleToggleAtividade(ativ._id, !!ativ.concluida)}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
-                    ativ.concluida 
-                      ? 'bg-emerald-50/40 border-emerald-200 text-slate-800' 
-                      : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={!!ativ.concluida}
-                    onChange={() => {}} // tratado no onClick do container
-                    className="w-5 h-5 mt-0.5 text-emerald-600 rounded focus:ring-emerald-500 accent-emerald-600 shrink-0 cursor-pointer"
-                  />
-                  <div className="flex-1">
-                    <p className={`text-sm font-medium leading-snug ${ativ.concluida ? 'line-through text-slate-500' : 'text-slate-900'}`}>
-                      {ativ.descricao}
-                    </p>
-                    {ativ.observacao && (
-                      <p className="text-xs text-amber-700 italic mt-1 bg-amber-50 p-1.5 rounded-md border border-amber-200">
-                        Obs: {ativ.observacao}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Card de Conclusão / Ação Global */}
         <div className="pt-2">
