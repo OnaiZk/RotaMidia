@@ -11,15 +11,20 @@ import { enfileirarAcaoOffline, obterStatusPontoOffline } from '@/lib/offline-sy
 export default function PontoDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const token = params.token as string;
-  const pontoId = params.pontoId as string;
+  const token = (Array.isArray(params?.token) ? params.token[0] : params?.token) as string || '';
+  const pontoId = (Array.isArray(params?.pontoId) ? params.pontoId[0] : params?.pontoId) as string || '';
   
   const [concluindo, setConcluindo] = useState(false);
   const [overrideOffline, setOverrideOffline] = useState<boolean | null>(null);
 
-  const data = useQuery(api.campo.getPontoDetailsByToken, { token, pontoId });
+  const data = useQuery(
+    api.campo.getPontoDetailsByToken, 
+    token && pontoId ? { token, pontoId } : 'skip'
+  );
   const markAllAtividades = useMutation(api.campo.markAllAtividades);
   const unmarkAllAtividades = useMutation(api.campo.unmarkAllAtividades);
+  const toggleAtiv = useMutation(api.campo.toggleAtividade);
+  const updateObs = useMutation(api.campo.updateAtividadeObservacao);
 
   useEffect(() => {
     // Carrega status offline se houver ação pendente
@@ -59,8 +64,8 @@ export default function PontoDetailPage() {
 
   const { ponto, atividades } = data;
 
-  const totalAtividades = atividades.length;
-  const atividadesConcluidas = atividades.filter((a: any) => a.concluida).length;
+  const totalAtividades = atividades?.length || 0;
+  const atividadesConcluidas = atividades?.filter((a: any) => a.concluida).length || 0;
   
   // Se houver override offline local, ele tem prioridade sobre os dados do servidor até a sincronização
   const isConcluidoServidor = totalAtividades > 0 ? atividadesConcluidas === totalAtividades : false;
@@ -68,10 +73,11 @@ export default function PontoDetailPage() {
   const isOfflinePending = overrideOffline !== null;
 
   const getMapsUrl = () => {
+    if (!ponto) return '#';
     if (ponto.latitude && ponto.longitude) {
       return `https://www.google.com/maps/search/?api=1&query=${ponto.latitude},${ponto.longitude}`;
     }
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ponto.endereco)}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ponto.endereco || '')}`;
   };
 
   const handleConcluirPonto = async () => {
@@ -145,9 +151,6 @@ export default function PontoDetailPage() {
       }
     }
   };
-
-  const toggleAtiv = useMutation(api.campo.toggleAtividade);
-  const updateObs = useMutation(api.campo.updateAtividadeObservacao);
 
   const handleToggleAtividade = async (atividadeId: string, atualConcluida: boolean) => {
     try {

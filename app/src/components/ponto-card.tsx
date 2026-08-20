@@ -32,7 +32,7 @@ export function PontoCard({ ponto, token }: PontoCardProps) {
   const isConcluidoServidor = totalAtividades > 0 && atividadesConcluidas === totalAtividades;
   const isConcluido = offlineStatus !== null ? offlineStatus : isConcluidoServidor;
   const isOfflinePending = offlineStatus !== null;
-  const numeroExibicao = ponto.numeroPonto || ponto.numero || '';
+  const numeroExibicao = ponto.numeroPonto || '';
   
   const getMapsUrl = () => {
     if (ponto.latitude && ponto.longitude) {

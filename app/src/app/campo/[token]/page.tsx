@@ -12,15 +12,15 @@ import { obterStatusPontoOffline } from '@/lib/offline-sync';
 
 export default function CampoTokenPage() {
   const params = useParams();
-  const token = params.token as string;
+  const token = (Array.isArray(params?.token) ? params.token[0] : params?.token) as string || '';
   const [filter, setFilter] = useState<'todos' | 'pendentes' | 'concluidos'>('todos');
   const [tick, setTick] = useState(0); // Trigger para re-renderizar quando a fila offline muda
 
-  const data = useQuery(api.campo.getAtribuicaoByToken, { token });
+  const data = useQuery(api.campo.getAtribuicaoByToken, token ? { token } : 'skip');
   const markVisualizado = useMutation(api.campo.markAtribuicaoVisualizado);
 
   useEffect(() => {
-    if (data && !data.visualizadoEm) {
+    if (data && !data.visualizadoEm && token) {
       markVisualizado({ token }).catch(console.error);
     }
   }, [data, token, markVisualizado]);

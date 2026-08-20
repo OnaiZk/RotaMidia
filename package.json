@@ -2,5 +2,8 @@
   "dependencies": {
     "@types/nodemailer": "^8.0.1",
     "nodemailer": "^9.0.5"
+  },
+  "devDependencies": {
+    "hyperframes": "^0.8.4"
   }
 }
